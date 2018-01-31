@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name=viewport content="width=device-width, initial-scale=1">
+    <title>LexToumbourou.com - What Are Zombie Processes?</title>
+    <link rel="stylesheet" type="text/css" href="/theme/css/style.css" />
+    <link rel="stylesheet" type="text/css" href="/theme/css/pygment.css" />
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="//yandex.st/highlightjs/7.3/styles/github.min.css">
+    <link rel="alternate" type="application/atom+xml" title="LexToumbourou.com" href="http://lextoumbourou.github.io/atom.xml">
+
+      <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+      <!--[if lt IE 8]>
+        <link rel="stylesheet" href="css/blueprint/ie.css" type="text/css" media="screen, projection">
+      <![endif]-->
+      <script type="text/javascript" src="/theme/js/app.js"></script>
+    <noscript>
+      <style>
+        div.article_body {
+          opacity: 1;
+        }
+        ul.articles {
+          opacity: 1;
+        }
+      </style>
+    </noscript>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-33772243-5', 'auto');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="container">
+
+      <div id="header">
+        <div id="side-header">
+          <a href="/pages/about.html"><img src="https://avatars1.githubusercontent.com/u/1080552?v=3&s=200" width="90" id="main-image"></a>
+          <ul>
+            <li><a href="https://github.com/lextoumbourou"><i class="fa fa-github fa-1x"></i></a></li>
+            <li><a href="https://twitter.com/lexandstuff"><i class="fa fa-twitter fa-1x"></i></a></li>
+            <li><a href="https://www.instagram.com/lextoumbourou/"><i class="fa fa-instagram fa-1x"></i></a></li>
+            <li><a href="https://au.linkedin.com/in/lextoumbourou"><i class="fa fa-linkedin fa-1x"></i></a></li>
+            <li><a href="https://www.youtube.com/user/5footnothingmusic"><i class="fa fa-youtube fa-1x"></i></a></li>
+          </ul>
+        </div>
+
+        <h1><a href="/">Lex Toumbourou</a></h1>
+
+        <div id="slogan">Python, data, DevOps etc</div>
+
+      </div>
+
+      <hr>
+
+      <div id="content">
+<div class="articles">
+    <a name="article"></a>
+    <article>
+        <header class="title">
+            <h2>
+                Jun 08, 2013.
+                <a href="/blog/posts/what-are-zombie-processes/" rel="bookmark">What Are Zombie Processes?</a>
+            </h2>
+        </div>
+
+        <div class="article_body">
+            <p><a name="intro"></a></p>
+<div class="intro">
+A while back I went for a job interview at a high profile company you've
+heard of. Since it was for a system engineer-type role, there were
+questions about Unix internals. One of those questions was about zombie
+processes. At the time, I hadn't grasped this concept completely and I
+recall giving a vague answer about processes whose parent process had
+died or something. I didn't get the job.
+
+<p>
+
+In this short article, for my sake if nothing else, I'm going to
+clear up the misconceptions I had about zombie/defunct processes,
+through a series of explanations and code examples. If you have
+experience coding in Python, it'll be helpful, but all the code should
+be simple enough that it can be transferred to the scripting language
+of your choice.
+</div>
+
+<ul>
+<li><a href="#intro">Intro</a></li>
+<li><a href="#fundamentals">Multiprocessing Fundamentals</a></li>
+<li><a href="#what-zombie-processes-are-not">What Zombie Processes Are Not (Spoiler: Orphan Processes)</a></li>
+<li><a href="#what-are-zombie-processes">So Then, What Zombie Processes Are</a></li>
+<li><a href="#killing-zombie-processes">How To "Kill" Zombie Processes</a> </li>
+<li><a href="#summary">Summary (tl;dr)</a></li>
+</ul>
+<hr />
+<p><a name="fundamentals"></a></p>
+<h3><a href="#fundamentals">Multiprocessing Fundamentals</a></h3>
+<p>When a process spawns a separate process to handle some work, it invokes
+the <code>fork(2)</code> system call. <code>fork(2)</code> duplicates the current process in
+memory and both processes continue executing from the same location. We refer to
+the new process as the <em>child</em> process. We refer to the calling process
+as the <em>parent</em>. Type <code>man 2 fork</code> for information.</p>
+<p>In the parent process, the <code>fork(2)</code> call returns the process id, aka
+the <em>PID</em>, of the child process. The same call from the child returns 0.</p>
+<p>Python provides a wrapper around the call called <code>fork()</code> from the <code>os</code>
+module. Let's see it in action.</p>
+<h5>fork.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">fork</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="c"># Fork the process</span>
+<span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c"># We&#39;re in the child process</span>
+    <span class="k">print</span> <span class="s">&quot;Child: Waddup?&quot;</span>
+<span class="k">else</span><span class="p">:</span> <span class="c"># We&#39;re in the parent process</span>
+    <span class="k">print</span> <span class="s">&quot;Parent: I just created child&quot;</span><span class="p">,</span> <span class="n">pid</span>
+
+    <span class="c"># Sleep for a second to avoid being dropped back to the shell when the parent finishes</span>
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Now, when I run the script in the terminal, we should see the child
+process' PID followed immediately by the code executed in the
+child process.</p>
+<div class="highlight"><pre>&gt; python fork.py
+Parent: I just created child 19478
+Child: Waddup?
+</pre></div>
+
+
+<p>From the child process, we can get the parent process' PID by calling
+the <code>getppid(2)</code> system call. Which, again, Python provides a wrapper
+around called <code>os.getppid()</code>.</p>
+<h5>fork_ppid.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">fork</span><span class="p">,</span> <span class="n">getppid</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c"># We&#39;re in the child process</span>
+    <span class="k">print</span> <span class="s">&quot;Child: Waddup?&quot;</span>
+    <span class="k">print</span> <span class="s">&quot;Child: My parent is&quot;</span><span class="p">,</span> <span class="n">getppid</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Parent: I just created child&quot;</span><span class="p">,</span> <span class="n">pid</span>
+    <span class="c"># Sleep for a second to avoid being dropped back to the shell when the parent finishes</span>
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+
+</p>
+
+<div class="highlight"><pre>&gt; python fork_ppid.py
+Parent: I just created child 19741
+Child: Waddup?
+Child: My parent is 19740
+</pre></div>
+
+
+<p>Of course, we are not limited to just one child process; we can have as
+many as we like.</p>
+<hr />
+<p><a name="what-zombie-processes-are-not"></a></p>
+<h3><a href="#what-zombie-processes-are-not">What Zombie Processes Are Not (Spoiler: Orphan Processes)</a></h3>
+<p>When a parent process finishes executing before its children, the child
+processes are said to become <em>orphan</em> processes. When this happens, the
+child is <em>adopted</em> by the <em>init</em> process - the first process executed by
+the kernel at boot - which has a PID of 1. The <em>init</em> process then waits
+for the child process to finish.</p>
+<p>Let me add a line to execute in the child process that sleeps for a
+second 3 times after printing its parent's PID. The parent will exit on the first iteration, thus <em>orphaning</em> its child.</p>
+<h5>fork_orphan.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">fork</span><span class="p">,</span> <span class="n">getppid</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Child: I&#39;m about to become an orphan!&quot;</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s">&quot;Child: My parent is&quot;</span><span class="p">,</span> <span class="n">getppid</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Parent: I just created child&quot;</span><span class="p">,</span> <span class="n">pid</span>
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Let's take a look at the results.</p>
+<div class="highlight"><pre>&gt; python fork_orphan.py
+Parent: I just created child 19683
+Child: I<span class="err">&#39;</span>m about to become an orphan!
+Child: My parent is 19682
+Child: My parent is 1
+Child: My parent is 1
+</pre></div>
+
+
+<p>So, to prevent the child from becoming an <code>orphan</code>, our parent process
+can call the <code>wait(2)</code>  system call. <code>wait(2)</code> effectively waits
+for its children to exit then collects some information about them. In
+Python, the system call is available as <code>os.wait()</code> which returns a
+tuple containing the child's PID and exit status indication (see docs
+for more info).</p>
+<h5>fork_wait.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">fork</span><span class="p">,</span> <span class="n">getppid</span><span class="p">,</span> <span class="n">wait</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="nb">exit</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Child: Hope my parent doesn&#39;t forget me this time!&quot;</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s">&quot;Child: My parent is&quot;</span><span class="p">,</span> <span class="n">getppid</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">wait</span><span class="p">()</span>
+    <span class="k">print</span> <span class="s">&quot;Parent: My child has finished processing. My work here is done.&quot;</span>
+</pre></div>
+
+
+<p>And when we run it?</p>
+<div class="highlight"><pre>&gt; python fork_wait.py
+Child: Hope my parent doesn<span class="err">&#39;</span>t forget me this <span class="nb">time</span>!
+Child: My parent is 20037
+Child: My parent is 20037
+Child: My parent is 20037
+Parent: My child has finished processing. My work here is <span class="k">done</span>.
+</pre></div>
+
+
+<p>The procedure of orphaning a process is used by the operating system to daemonises a process (which is a topic for another day).</p>
+<hr />
+<p><a name="what-are-zombie-processes"></a></p>
+<h3><a href="#what-are-zombie-processes">So Then, What Zombie Processes Are</a></h3>
+<p>Zombie processes are, in some ways, the opposite of orphaned processes.
+When a child process finishes running, it's state (PID and return code)
+sit in the process table waiting for the parent to collect it by
+calling <code>wait(2)</code>. In this state, a child is said to become - wait for it - a <em>defunct</em> or
+<em>zombie</em> process. Therefore, <span class="pull_quote right">zombie processes have completed execution 
+and thus take up almost no system resources</span>. However, they do hold on to
+PIDs that could potentially be allocated to other processes and, with too
+many zombie processes - say if a poorly coded program isn't collecting
+return status information fast enough, it's possible for the OS to run out of
+PIDs. You can increase the number of available PIDs by modifying the
+kernel parameter <code>kernel.pid_max</code> using either the <code>sysctl</code> command or by editing the <code>/etc/sysctl.conf</code> file. More info
+is available <a href="http://www.cyberciti.biz/tips/howto-linux-increase-pid-limits.html">here</a>.</p>
+<p>To see this in action, I'm going to create a program which creates a child process that runs
+for 1 second and a parent process that'll sleep indefinitely.</p>
+<h5>fork_zombie.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">fork</span><span class="p">,</span> <span class="n">getppid</span><span class="p">,</span> <span class="n">wait</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="nb">exit</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="nb">exit</span><span class="p">(</span><span class="s">&quot;Child: Goodbye, cruel world&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Parent: I created a child with pid&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span>\
+          <span class="s">&quot;and now all I want to do is sleep...&quot;</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+
+</p>
+
+<div class="highlight"><pre>&gt; python fork_zombie.py
+Parent: I created a child with pid 26556 and now all I want to <span class="k">do </span>is sleep...
+Child: Goodbye cruel world!
+</pre></div>
+
+
+<p>Now, in a separate terminal instance (or a separate Screen, Tmux or
+Byobu window) let's examine the child process using <code>ps</code>.</p>
+<div class="highlight"><pre>&gt; ps -ef | grep 26556
+lex      26556 26555  0 21:40 pts/3    00:00:00 <span class="o">[</span>python<span class="o">]</span> &lt;defunct&gt;
+</pre></div>
+
+
+<p>There we have it, a defunct/zombie process that utilises no memory
+awaiting our parent to acknowledge it by calling <code>wait(2)</code> or for our
+parent to die.</p>
+<hr />
+<p><a name="killing-zombie-processes"></a></p>
+<h3><a href="#killing-zombie-processes">How To "Kill" Zombie Processes</a></h3>
+<p>You can't really "kill" zombie processes because, well, they're already dead.</p>
+<p>For some processes, sending the <code>SIGCHLD</code> signal to the parent process
+could instruct it to call <code>wait</code> and <em>reap</em> its dead child processes.
+However, if a handler hasn't been implemented for <code>SIGCHLD</code>, then you're
+outta luck.</p>
+<p>The only way to clear out a zombie process is for the parent to <em>reap</em>
+the process by calling <code>kill</code> or for the parent process itself to die.
+If, however, there's a zombie processes in the system for a parent
+process that's already finished executing, this could be a sign of an
+operating system bug.</p>
+<p>In our example, we can get rid of the zombie process by closing the
+parent process, which I will do by pressing Ctrl + C in the terminal
+where my parent is running.</p>
+<div class="highlight"><pre>^CTraceback <span class="o">(</span>most recent call last<span class="o">)</span>:
+  File <span class="s2">&quot;fork.py&quot;</span>, line 11, in 
+    time.sleep<span class="o">(</span>1<span class="o">)</span>
+KeyboardInterrupt
+</pre></div>
+
+
+<p>Now, if we look for the initial zombie process, it should be no where to
+be found.</p>
+<div class="highlight"><pre>&gt; ps -e | grep 27439
+&gt;
+</pre></div>
+
+
+<hr />
+<p><a name="summary"></a></p>
+<h3><a href="#summary">Summary (tl;dr)</a></h3>
+<p>To recap, zombie processes are not orphan processes, they are dead processes: processes that have finished executing and are waiting for the parent to reap them (collect information about their status). You are barking up the wrong tree trying to kill a zombie process because they are already dead. To get rid of a zombie process, kill its parent. Hope that helps.</p>
+        </div>
+    </article>
+
+<div class="twitter-link">
+    <a href="https://twitter.com/lexandstuff">&#x2764;</a>
+</div>
+
+</div>
+<div class="comments">
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'lextoumbouroucom'; // Required - Replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a></div>
+        <hr>
+      </div>
+
+    </div>
+    <script src="//yandex.st/highlightjs/7.3/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>

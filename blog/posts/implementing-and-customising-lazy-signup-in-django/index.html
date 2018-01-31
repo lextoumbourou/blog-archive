@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name=viewport content="width=device-width, initial-scale=1">
+    <title>LexToumbourou.com - Implementing and customising Lazy Signup in Django</title>
+    <link rel="stylesheet" type="text/css" href="/theme/css/style.css" />
+    <link rel="stylesheet" type="text/css" href="/theme/css/pygment.css" />
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="//yandex.st/highlightjs/7.3/styles/github.min.css">
+    <link rel="alternate" type="application/atom+xml" title="LexToumbourou.com" href="http://lextoumbourou.github.io/atom.xml">
+
+      <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+      <!--[if lt IE 8]>
+        <link rel="stylesheet" href="css/blueprint/ie.css" type="text/css" media="screen, projection">
+      <![endif]-->
+      <script type="text/javascript" src="/theme/js/app.js"></script>
+    <noscript>
+      <style>
+        div.article_body {
+          opacity: 1;
+        }
+        ul.articles {
+          opacity: 1;
+        }
+      </style>
+    </noscript>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-33772243-5', 'auto');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="container">
+
+      <div id="header">
+        <div id="side-header">
+          <a href="/pages/about.html"><img src="https://avatars1.githubusercontent.com/u/1080552?v=3&s=200" width="90" id="main-image"></a>
+          <ul>
+            <li><a href="https://github.com/lextoumbourou"><i class="fa fa-github fa-1x"></i></a></li>
+            <li><a href="https://twitter.com/lexandstuff"><i class="fa fa-twitter fa-1x"></i></a></li>
+            <li><a href="https://www.instagram.com/lextoumbourou/"><i class="fa fa-instagram fa-1x"></i></a></li>
+            <li><a href="https://au.linkedin.com/in/lextoumbourou"><i class="fa fa-linkedin fa-1x"></i></a></li>
+            <li><a href="https://www.youtube.com/user/5footnothingmusic"><i class="fa fa-youtube fa-1x"></i></a></li>
+          </ul>
+        </div>
+
+        <h1><a href="/">Lex Toumbourou</a></h1>
+
+        <div id="slogan">Python, data, DevOps etc</div>
+
+      </div>
+
+      <hr>
+
+      <div id="content">
+<div class="articles">
+    <a name="article"></a>
+    <article>
+        <header class="title">
+            <h2>
+                Oct 21, 2012.
+                <a href="/blog/posts/implementing-and-customising-lazy-signup-in-django/" rel="bookmark">Implementing and customising Lazy Signup in Django</a>
+            </h2>
+        </div>
+
+        <div class="article_body">
+            <p>
+
+<div class="intro">
+In an internet saturated with new things, if you expect anybody to give
+your new web application a glance, then you'd better make the barrier to
+entry pretty damn low. Hence, Lazy Signup. If you're new to Lazy Sign
+up, then this <a href="http://www.youtube.com/watch?v=uBT2niL2jKM">video</a> should help.
+
+</p>
+
+<p>For Django users, <a href="https://github.com/danfairs/">Dan Fair</a>'s <a href="https://github.com/danfairs/django-lazysignup">django-lazysignup</a> is "a package
+designed to allow users to interact with a site as if they were
+authenticated users, but without signing up."</p>
+</p>
+
+<p>It works by creating cookie-bound temporary accounts for new users,
+allowing them to interact with the site as if they were registered.
+Then, when they're ready to sign up, the package provides an overridable
+view that allows for a "conversion" to a real account.</p>
+</p>
+
+<p>In this short tutorial, I'll show you how I setup <em>django-lazysignup</em>
+for a simple to-do app I'm putting together that allows you to only
+create <a href="http://www.justtwotasks.com">two tasks per day</a> (shut up, my mum thinks it's a good idea).
+</div></p>
+<h3>The setup</h3>
+</p>
+
+<p>My Django project had just one app called <em>tasks</em> which provided an
+Ajax-enabled template where the users could add, edit and complete
+tasks. On the file system, it looks a little something like this:</p>
+<div class="highlight"><pre>lex@server:~/twotasks&gt; tree -I <span class="s2">&quot;*pyc&quot;</span> -A
+.
++-- __init__.py
++-- settings.py
++-- tasks
+¦   +-- __init__.py
+¦   +-- models.py
+¦   +-- templates
+¦   ¦   +-- tasks.html
+¦   +-- tests.py
+¦   +-- urls.py
+¦   +-- views.py
++-- templates
+¦   +-- parent.html
++-- urls.py
+</pre></div>
+
+
+<h3>Installing and configuring django-lazysignup</h3>
+<p>As per the <a href="http://django-lazysignup.readthedocs.org/">docs</a>, <em>django-lazysignup</em> can be installed with Pip.</p>
+<div class="highlight"><pre>lex@server:~/twotasks&gt; pip install django-lazysignup
+</pre></div>
+
+
+<p>Next, I added <em>lazysignup</em> to the <em>INSTALLED_APPS</em> section of my
+settings.py file. Also, I ensured that<em>django.contrib.auth</em> was
+installed so I can use Django's built-in user authentication system.</p>
+<p>Lastly, I added the <em>lazysignup</em> authentication backend to the
+<em>AUTHENTICATION_BACKENDS</em> section.</p>
+<h5>settings.py</h5>
+<div class="highlight"><pre><span class="c">#...</span>
+
+<span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;django.contrib.auth&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.contenttypes&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.sessions&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.sites&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.messages&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.staticfiles&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.admin&#39;</span><span class="p">,</span>
+    <span class="s">&#39;lazysignup&#39;</span><span class="p">,</span>
+    <span class="s">&#39;justtwotasks.tasks&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="p">:::</span><span class="n">python</span>
+<span class="n">AUTHENTICATION_BACKENDS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;django.contrib.auth.backends.ModelBackend&#39;</span><span class="p">,</span>
+    <span class="s">&#39;lazysignup.backends.LazySignupBackend&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<p>Then, I ran <em>syncdb</em> to setup the tables <em>lazysignup</em> uses.</p>
+<div class="highlight"><pre>lex@server:~/twotasks&gt; python manage.py syncdb
+</pre></div>
+
+
+<p>Which runs these queries:</p>
+<div class="highlight"><pre>lex@server:~/twotasks&gt; python manage.py sqlall lazysignup
+BEGIN;
+CREATE TABLE <span class="s2">&quot;lazysignup_lazyuser&quot;</span> <span class="o">(</span>
+    <span class="s2">&quot;id&quot;</span> serial NOT NULL PRIMARY KEY,
+    <span class="s2">&quot;user_id&quot;</span> integer NOT NULL UNIQUE REFERENCES <span class="s2">&quot;auth_user&quot;</span> <span class="o">(</span><span class="s2">&quot;id&quot;</span><span class="o">)</span> DEFERRABLE INITIALLY DEFERRED,
+    <span class="s2">&quot;created&quot;</span> timestamp with <span class="nb">time </span>zone NOT NULL
+<span class="o">)</span>
+;
+CREATE INDEX <span class="s2">&quot;lazysignup_lazyuser_created&quot;</span> ON <span class="s2">&quot;lazysignup_lazyuser&quot;</span> <span class="o">(</span><span class="s2">&quot;created&quot;</span><span class="o">)</span>;
+COMMIT;
+</pre></div>
+
+
+<p>Finally, I created a route to via the <em>/convert</em> url to the lazysignup
+views in my <em>URLconf</em>.</p>
+<h5>urls.py</h5>
+<div class="highlight"><pre><span class="nv">urlpatterns</span> <span class="o">=</span> patterns<span class="o">(</span><span class="s1">&#39;&#39;</span>,
+    <span class="c">#...</span>
+    url<span class="o">(</span>r<span class="s1">&#39;^convert&#39;</span>, include<span class="o">(</span><span class="s1">&#39;lazysignup.urls&#39;</span><span class="o">))</span>,
+    <span class="c">#...</span>
+<span class="o">)</span>
+</pre></div>
+
+
+<h3>Utilising django-lazysignup</h3>
+<h4>Views</h4>
+<p>When a user is routed to your view wrapped in the <em>@allow_lazy_user</em>
+decorator, a temporary user account is created for them if they aren't
+already signed in.</p>
+<p>In my app, I've got three views, one for displaying the main page, the
+other two for handling task related functionality like editing tasks,
+deleting tasks etc. All of them should be accessible to the lazy user,
+so I applied to decorator to each.</p>
+<h5>tasks/views.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">lazysignup.decorators</span> <span class="kn">import</span> <span class="n">allow_lazy_user</span>
+
+<span class="nd">@allow_lazy_user</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Handles displaying the view to the user&quot;&quot;&quot;</span>
+<span class="c">#...</span>
+
+<span class="nd">@allow_lazy_user</span>
+<span class="k">def</span> <span class="nf">add_or_update_task</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Handles adding a new task&quot;&quot;&quot;</span>
+
+<span class="c">#...</span>
+
+<span class="nd">@allow_lazy_user</span>
+<span class="k">def</span> <span class="nf">delete_task</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Handles deleting tasks&quot;&quot;&quot;</span>
+
+<span class="c">#..</span>
+</pre></div>
+
+
+<p>Now, if I access one of those views by hitting the main homepage, I can
+see in my database that a user account is automatically generated.</p>
+<div class="highlight"><pre><span class="n">lex</span><span class="o">@</span><span class="n">server</span><span class="p">:</span><span class="o">~/</span><span class="n">twotasks</span><span class="o">&gt;</span> <span class="n">python</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">dbshell</span>
+
+<span class="n">justtwotasks</span><span class="o">=&gt;</span> <span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">date_joined</span> <span class="k">FROM</span> <span class="n">auth_user</span><span class="p">;</span>
+ <span class="n">id</span> <span class="o">|</span>            <span class="n">username</span>            <span class="o">|</span>          <span class="n">date_joined</span>
+<span class="c1">----+--------------------------------+-------------------------------</span>
+  <span class="mi">2</span> <span class="o">|</span> <span class="n">dced705135d642dd8079c945276dea</span> <span class="o">|</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">21</span> <span class="mi">22</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">05</span><span class="p">.</span><span class="mi">640585</span><span class="o">+</span><span class="mi">11</span>
+  <span class="mi">1</span> <span class="o">|</span> <span class="n">lex</span>                            <span class="o">|</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">06</span> <span class="mi">12</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="mi">33</span><span class="p">.</span><span class="mi">243674</span><span class="o">+</span><span class="mi">10</span>
+<span class="p">(</span><span class="mi">2</span> <span class="k">rows</span><span class="p">)</span>
+</pre></div>
+
+
+<p>And, we can see the user is defined as a <em>lazyuser</em> in the
+<em>lazysignup_lazyuser</em> table too.</p>
+<div class="highlight"><pre><span class="n">justtwotasks</span><span class="o">=&gt;</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">from</span> <span class="n">lazysignup_lazyuser</span><span class="p">;</span>
+ <span class="n">id</span> <span class="o">|</span> <span class="n">user_id</span> <span class="o">|</span>           <span class="n">created</span>
+<span class="c1">----+---------+------------------------------</span>
+ <span class="mi">1</span>  <span class="o">|</span>      <span class="mi">2</span>  <span class="o">|</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">21</span> <span class="mi">22</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">05</span><span class="p">.</span><span class="mi">65818</span><span class="o">+</span><span class="mi">11</span>
+<span class="p">(</span><span class="mi">1</span> <span class="k">row</span><span class="p">)</span>
+</pre></div>
+
+
+<h4>Templates</h4>
+<p>In my parent template, I can detect whether the user is a lazy user and
+provide a <em>Sign up</em> or <em>Login</em> button if they are, or information about
+the logged in account if they're not by utilising the <em>is_lazy_user</em>
+template filter. This requires importing the <em>lazysignup</em> template tags.</p>
+<p>Initially, the <em>/convert</em> page will return a <em>TemplateDoesNotExist</em>
+exception. I'll fix that next.</p>
+<h5>templates/parent.html</h5>
+<div class="highlight"><pre>{% load i18n lazysignup_tags %}
+
+#...
+
+<span class="nt">&lt;ul&gt;</span>
+{% if not user|is_lazy_user %}
+    <span class="nt">&lt;li&gt;</span>Logged in as <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">&quot;/accounts/profile&quot;</span><span class="nt">&gt;</span>{{ user.username }}<span class="nt">&lt;/a&gt;&lt;/li&gt;</span>
+    <span class="nt">&lt;li&gt;&lt;a</span> <span class="na">href=</span><span class="s">&quot;/accounts/logout&quot;</span><span class="nt">&gt;</span>Sign out<span class="nt">&lt;/a&gt;&lt;/li&gt;</span>
+{% else %}
+    <span class="nt">&lt;li&gt;</span>
+        <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">&quot;/convert&quot;</span><span class="nt">&gt;</span>Register<span class="nt">&lt;/a&gt;</span>
+    <span class="nt">&lt;/li&gt;</span>
+    <span class="nt">&lt;li&gt;</span>
+        <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">&quot;/accounts/login/&quot;</span><span class="nt">&gt;</span>Sign in<span class="nt">&lt;/a&gt;</span>
+    <span class="nt">&lt;/li&gt;</span>
+<span class="nt">&lt;/ul&gt;</span>
+{% endif %}
+</pre></div>
+
+
+<h3>Setting up the convert page</h3>
+<p>The /convert page is where the user can convert their temporary account
+to the real thing. In my <em>templates</em> folder, I copied the <em>lazysignup</em>
+template directory from the <em>django-lazysignup</em> project.</p>
+<p>To do it, I cloned a local copy of the repo, but you could just grab the
+files from <a href="https://github.com/danfairs/django-lazysignup/tree/master/lazysignup/templates">Github</a> or just simply role your own templates using my
+example as a guide.</p>
+<p>I'm going to customize the template to inherit from my base template,
+but obviously you can make them look sexy however you want.</p>
+<div class="highlight"><pre>lex@server:~/src&gt; git clone git://github.com/danfairs/django-lazysignup.git 
+lex@server:~/src&gt; <span class="nb">cd </span>django-lazysignup/lazysignup/templates/
+lex@server:~/src/django-lazysignup/lazysignup/templates/&gt; cp -R lazysignup ~/twotasks/templates/
+</pre></div>
+
+
+<h5>templates/lazysignup/convert.html</h5>
+<div class="highlight"><pre>{% extends &quot;parent.html&quot; %}
+{% load i18n %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block content %}
+    <span class="nt">&lt;form</span> <span class="na">method=</span><span class="s">&quot;post&quot;</span> <span class="na">action=</span><span class="s">&quot;{% url lazysignup_convert %}&quot;</span><span class="nt">&gt;</span>
+        {{ form.as_p }}
+        {% csrf_token %}
+        <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;hidden&quot;</span> <span class="na">name=</span><span class="s">&quot;redirect_to&quot;</span> <span class="na">value=</span><span class="s">&quot;{{ redirect_to }}&quot;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;input</span> <span class="na">class=</span><span class="s">&quot;btn&quot;</span> <span class="na">type=</span><span class="s">&quot;submit&quot;</span> <span class="na">value=</span><span class="s">&quot;{% trans &quot;</span><span class="na">Submit</span><span class="err">&quot;</span> <span class="err">%}&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/form&gt;</span>
+{% endblock %}
+</pre></div>
+
+
+<p>Now, if I convert our account, I can see the username update in the
+<em>auth_user</em> table and disappear from the <em>lazyuser</em> table.</p>
+<div class="highlight"><pre><span class="n">lex</span><span class="o">@</span><span class="n">server</span><span class="p">:</span><span class="o">~/</span><span class="n">twotasks</span><span class="o">&gt;</span> <span class="n">python</span> <span class="n">manage</span><span class="p">.</span><span class="n">py</span> <span class="n">dbshell</span>
+<span class="n">justtwotasks</span><span class="o">=&gt;</span> <span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">date_joined</span> <span class="k">FROM</span> <span class="n">auth_user</span><span class="p">;</span>
+ <span class="n">id</span> <span class="o">|</span>      <span class="n">username</span>      <span class="o">|</span>          <span class="n">date_joined</span>
+<span class="c1">----+--------------------+-------------------------------</span>
+  <span class="mi">2</span> <span class="o">|</span> <span class="n">i_just_set_this_up</span> <span class="o">|</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">21</span> <span class="mi">22</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">05</span><span class="p">.</span><span class="mi">640585</span><span class="o">+</span><span class="mi">11</span>
+  <span class="mi">1</span> <span class="o">|</span> <span class="n">lex</span>                <span class="o">|</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">06</span> <span class="mi">12</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="mi">33</span><span class="p">.</span><span class="mi">243674</span><span class="o">+</span><span class="mi">10</span>
+<span class="p">(</span><span class="mi">2</span> <span class="k">rows</span><span class="p">)</span>
+
+<span class="n">justtwotasks</span><span class="o">=&gt;</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">from</span> <span class="n">lazysignup_lazyuser</span><span class="p">;</span>
+ <span class="n">id</span> <span class="o">|</span> <span class="n">user_id</span> <span class="o">|</span> <span class="n">created</span>
+<span class="c1">----+---------+---------</span>
+<span class="p">(</span><span class="mi">0</span> <span class="k">rows</span><span class="p">)</span>
+</pre></div>
+
+
+<h3>Customising the convert form</h3>
+<p>So, now that's working rather nicely. I can create tasks, close my
+browser and, providing my session is still active, access the tasks.</p>
+<p>Then, when I'm ready, I can create an account and it's all gravy.</p>
+<p>But, what happens if I want to capture more than just username and
+password in the signup process?</p>
+<p>Perhaps, I would also like to capture the user's email address, or full
+name etc.</p>
+<p><em>lazysignup</em> lets you pass in a custom form to the <em>convert</em> view,
+provided it matches the specifications listed <a href="http://django-lazysignup.readthedocs.org/en/latest/usage.html#the-converted-signal">here</a>.</p>
+<p>My example extends the <em>UserCreationForm</em> class adding email,
+first_name and last_name fields.</p>
+<h5>forms.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">django</span> <span class="kn">import</span> <span class="n">forms</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.models</span> <span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.forms</span> <span class="kn">import</span> <span class="n">UserCreationForm</span>
+<span class="kn">from</span> <span class="nn">django.utils.translation</span> <span class="kn">import</span> <span class="n">ugettext_lazy</span> <span class="k">as</span> <span class="n">_</span>
+
+
+<span class="k">class</span> <span class="nc">TwoTasksUserCreationForm</span><span class="p">(</span><span class="n">UserCreationForm</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class passed into lazysignup view to override default and allow</span>
+<span class="sd">    for email address username</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">EmailField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s">&quot;Email&quot;</span><span class="p">),</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s">&quot;Required. A valid email address.&quot;</span><span class="p">),</span>
+        <span class="n">error_messages</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&#39;invalid&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">&quot;That doesn&#39;t appear to be a valid email address.&quot;</span><span class="p">)})</span>
+
+    <span class="n">first_name</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s">&quot;First Name&quot;</span><span class="p">),</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s">&quot;Optional.&quot;</span><span class="p">),</span>
+        <span class="n">error_messages</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&#39;invalid&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">&quot;That doesn&#39;t appear to be a valid name.&quot;</span><span class="p">)})</span>
+
+    <span class="n">last_name</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s">&quot;Last Name&quot;</span><span class="p">),</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">help_text</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s">&quot;Optional.&quot;</span><span class="p">),</span>
+        <span class="n">error_messages</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&#39;invalid&#39;</span><span class="p">:</span> <span class="n">_</span><span class="p">(</span><span class="s">&quot;That doesn&#39;t appear to be a valid name.&quot;</span><span class="p">)})</span>
+
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">User</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;username&quot;</span><span class="p">,</span> <span class="s">&quot;password1&quot;</span><span class="p">,</span> <span class="s">&quot;password2&quot;</span><span class="p">,</span> <span class="s">&quot;email&quot;</span><span class="p">,</span>
+                  <span class="s">&quot;first_name&quot;</span><span class="p">,</span> <span class="s">&quot;last_name&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_credentials</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s">&quot;username&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s">&quot;username&quot;</span><span class="p">],</span>
+            <span class="s">&quot;password&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s">&quot;password1&quot;</span><span class="p">]}</span>
+</pre></div>
+
+
+<p>Now in my <em>URLconf</em>, I can pass in my freshly created form to the
+convert view using the <em>form_class</em> parameter.</p>
+<h5>urls.py</h5>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">justtwotasks.forms</span> <span class="kn">import</span> <span class="n">TwoTasksUserCreationForm</span> <span class="k">as</span> <span class="n">Form</span>
+
+<span class="n">urlpatterns</span> <span class="o">=</span> <span class="n">patterns</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span>
+    <span class="c">#...</span>
+    <span class="n">url</span><span class="p">(</span><span class="s">r&#39;^convert&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s">&#39;lazysignup.urls&#39;</span><span class="p">)),</span> <span class="p">{</span><span class="s">&#39;form_class&#39;</span> <span class="p">:</span> <span class="n">Form</span><span class="p">}),</span>
+    <span class="c">#...</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<h3>That's a wrap.</h3>
+<p>Hopefully that helped you get up and running with <em>django-lazysignup</em>.</p>
+<p>Feel free to <a href="mailto:lextoumbourou@gmail.com">let me know</a> if there's any issues with my tutorial.</p>
+        </div>
+    </article>
+
+<div class="twitter-link">
+    <a href="https://twitter.com/lexandstuff">&#x2764;</a>
+</div>
+
+</div>
+<div class="comments">
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'lextoumbouroucom'; // Required - Replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a></div>
+        <hr>
+      </div>
+
+    </div>
+    <script src="//yandex.st/highlightjs/7.3/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>

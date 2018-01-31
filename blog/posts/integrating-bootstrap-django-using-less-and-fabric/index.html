@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name=viewport content="width=device-width, initial-scale=1">
+    <title>LexToumbourou.com - Integrating Bootstrap with Django using Less and Fabric</title>
+    <link rel="stylesheet" type="text/css" href="/theme/css/style.css" />
+    <link rel="stylesheet" type="text/css" href="/theme/css/pygment.css" />
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="//yandex.st/highlightjs/7.3/styles/github.min.css">
+    <link rel="alternate" type="application/atom+xml" title="LexToumbourou.com" href="http://lextoumbourou.github.io/atom.xml">
+
+      <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+      <!--[if lt IE 8]>
+        <link rel="stylesheet" href="css/blueprint/ie.css" type="text/css" media="screen, projection">
+      <![endif]-->
+      <script type="text/javascript" src="/theme/js/app.js"></script>
+    <noscript>
+      <style>
+        div.article_body {
+          opacity: 1;
+        }
+        ul.articles {
+          opacity: 1;
+        }
+      </style>
+    </noscript>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-33772243-5', 'auto');
+      ga('send', 'pageview');
+    </script>
+  </head>
+
+  <body>
+    <div id="container">
+
+      <div id="header">
+        <div id="side-header">
+          <a href="/pages/about.html"><img src="https://avatars1.githubusercontent.com/u/1080552?v=3&s=200" width="90" id="main-image"></a>
+          <ul>
+            <li><a href="https://github.com/lextoumbourou"><i class="fa fa-github fa-1x"></i></a></li>
+            <li><a href="https://twitter.com/lexandstuff"><i class="fa fa-twitter fa-1x"></i></a></li>
+            <li><a href="https://www.instagram.com/lextoumbourou/"><i class="fa fa-instagram fa-1x"></i></a></li>
+            <li><a href="https://au.linkedin.com/in/lextoumbourou"><i class="fa fa-linkedin fa-1x"></i></a></li>
+            <li><a href="https://www.youtube.com/user/5footnothingmusic"><i class="fa fa-youtube fa-1x"></i></a></li>
+          </ul>
+        </div>
+
+        <h1><a href="/">Lex Toumbourou</a></h1>
+
+        <div id="slogan">Python, data, DevOps etc</div>
+
+      </div>
+
+      <hr>
+
+      <div id="content">
+<div class="articles">
+    <a name="article"></a>
+    <article>
+        <header class="title">
+            <h2>
+                Nov 11, 2012.
+                <a href="/blog/posts/integrating-bootstrap-django-using-less-and-fabric/" rel="bookmark">Integrating Bootstrap with Django using Less and Fabric</a>
+            </h2>
+        </div>
+
+        <div class="article_body">
+            <p>
+
+<div class="intro">
+It can be frustrating finding the perfect way to work with
+Bootstrap. On the one hand, I want to make sites look as customised
+and non-Bootstrappy as possible. On the other hand, it'd be nice to have
+an easy way to pull down the updates from the main Bootstrap repo
+without going through merge hell, or - god forbid - having to copy and
+paste bits and pieces by hand.
+
+</p>
+
+<p>I spent a day doing research into the ways other people were managing
+this, and have found that people are solving the problem a lot of
+different <a href="https://groups.google.com/forum/?fromgroups#!topic/twitter-bootstrap/GMMmF_nHEiI">ways</a>. None of which seemed satisfyingly "perfect". Though,
+I couldn't quite put my finger on what perfect should be. So, I decided
+I would set myself some simple guidelines for exactly what I wanted out
+of my Bootstrap experience and work out a solution to each.</p>
+</p>
+
+<p>The strategy I've come up with is probably not 100% ideal but then
+neither is your face (joking, you're beautiful). I also plan to update
+this post if I come up with a better way of doing it. Feel free to let
+me know in the comments if you've got a better way of doing it. Anyway,
+on to...</p>
+</div>
+
+<h3>The Requirements</h3>
+<p>I want to be able to...</p>
+<ol>
+<li>Custom Bootstrap classes and style variables using Less.</li>
+<li>Easily pull updates from the main Bootstrap repo without overwriting
+    any of my custom variables.</li>
+<li>Ensure my Less files are compiled server-side in production but
+    client-side during development, so I can make changes and see
+    results immediately.</li>
+</ol>
+<hr />
+<h3>Requirement 1: Customise base Bootstrap classes and styles using Less</h3>
+<p>With a little help from my <a href="http://stackoverflow.com/questions/10451317/twitter-bootstrap-customization-best-practices">friends</a>, I decided upon this solution. I
+would take the <code>less</code> directory out of the Bootstrap repo and put it in
+my static files directory. Then, I created my own <code>variables.less</code> file
+which would start its life as a copy of the one provided by Bootstrap
+but allow me to update and edit variables easily. Additionally, I have a
+<code>custom.less</code> file that references the variables file and allows me to
+overwrite Bootstrap classes and so forth. Let me break it down for
+ya'll.</p>
+<p>1. Firstly, in my Django project, I've setup a <code>less</code> directory in the
+<code>templates</code> directory of my project:</p>
+<div class="highlight"><pre>lex@server:~/&gt; <span class="nb">cd </span>project/templates/static
+lex@server:~/project/templates/static/&gt; mkdir less
+</pre></div>
+
+
+<p>2. Then, I cloned the Bootstrap repo and copied the <code>less</code> directory
+into my project's directory, renaming it to <code>bootstrap</code>. Like so:</p>
+<div class="highlight"><pre>lex@server:~/project/templates/static/&gt; <span class="nb">cd</span> ~/src
+lex@server:~/src&gt; git clone git://github.com/twitter/bootstrap.git
+lex@server:~/src&gt; cp bootstrap/less ~/project/templates/static/less/bootstrap
+</pre></div>
+
+
+<p>3. Next, at the root of my <code>less</code> directory, following the
+<a href="http://stackoverflow.com/questions/10451317/twitter-bootstrap-customization-best-practices">StackOverflow post</a>, I created a <code>custom.less</code> file which
+references the to the Bootstrap modules in the copied subdirectory and
+created the updated <code>variables.less</code> files as mentioned earlier. So, it
+looks something like this:</p>
+<h5>project/templates/static/less/custom.less</h5>
+<div class="highlight"><pre><span class="o">//...</span>
+
+<span class="o">//</span> <span class="nt">CSS</span> <span class="nt">Reset</span>
+<span class="k">@import</span> <span class="s2">&quot;bootstrap/reset.less&quot;</span><span class="p">;</span>
+
+<span class="o">//</span> <span class="nt">Core</span> <span class="nt">variables</span> <span class="nt">and</span> <span class="nt">mixins</span>
+<span class="k">@import</span> <span class="s2">&quot;variables.less&quot;</span><span class="p">;</span> <span class="o">//</span> <span class="nt">Modify</span> <span class="nt">this</span> <span class="nt">for</span> <span class="nt">custom</span> <span class="nt">colors</span><span class="o">,</span> <span class="nt">font-sizes</span><span class="o">,</span> <span class="nt">etc</span>
+<span class="k">@import</span> <span class="s2">&quot;bootstrap/mixins.less&quot;</span><span class="p">;</span>
+
+<span class="o">//</span> <span class="nt">Grid</span> <span class="nt">system</span> <span class="nt">and</span> <span class="nt">page</span> <span class="nt">structure</span>
+<span class="k">@import</span> <span class="s2">&quot;bootstrap/scaffolding.less&quot;</span><span class="p">;</span>
+<span class="k">@import</span> <span class="s2">&quot;bootstrap/grid.less&quot;</span><span class="p">;</span>
+<span class="k">@import</span> <span class="s2">&quot;bootstrap/layouts.less&quot;</span><span class="p">;</span>
+
+<span class="o">//...</span>
+</pre></div>
+
+
+<p>And I added my CSS overrides in the <code>custom.less</code> file immediately after
+the import statements.</p>
+<h5>project/templates/static/less/custom.less</h5>
+<div class="highlight"><pre><span class="o">//</span> <span class="nt">Utility</span> <span class="nt">classes</span>
+<span class="k">@import</span> <span class="s2">&quot;bootstrap/utilities.less&quot;</span><span class="p">;</span> <span class="o">//</span> <span class="nt">Has</span> <span class="nt">to</span> <span class="nt">be</span> <span class="nt">last</span> <span class="nt">to</span> <span class="nt">override</span> <span class="nt">when</span> <span class="nt">necessary</span>
+
+<span class="o">//</span> <span class="nt">Brand</span><span class="o">:</span> <span class="nt">website</span> <span class="nt">or</span> <span class="nt">project</span> <span class="nt">name</span>
+<span class="o">//</span> <span class="nt">-------------------------</span>
+<span class="nc">.navbar</span> <span class="nc">.brand</span> <span class="p">{</span>
+    <span class="k">float</span><span class="o">:</span> <span class="k">left</span><span class="p">;</span>
+    <span class="k">display</span><span class="o">:</span> <span class="k">block</span><span class="p">;</span>
+
+    <span class="o">//</span> <span class="n">Vertically</span> <span class="k">center</span> <span class="n">the</span> <span class="k">text</span> <span class="n">given</span> <span class="o">@</span><span class="n">navbarHeight</span>
+    <span class="k">padding</span><span class="o">:</span> <span class="p">((</span><span class="o">@</span><span class="n">navbarHeight</span> <span class="o">-</span> <span class="o">@</span><span class="n">baseLineHeight</span><span class="p">)</span> <span class="o">/</span> <span class="m">2</span><span class="p">)</span> <span class="m">20px</span> <span class="p">((</span><span class="o">@</span><span class="n">navbarHeight</span> <span class="o">-</span> <span class="o">@</span><span class="n">baseLineHeight</span><span class="p">)</span> <span class="o">/</span> <span class="m">2</span><span class="p">);</span>
+    <span class="k">margin-left</span><span class="o">:</span> <span class="m">-20px</span><span class="p">;</span> <span class="o">//</span> <span class="n">negative</span> <span class="n">indent</span> <span class="n">to</span> <span class="k">left</span><span class="o">-</span><span class="n">align</span> <span class="n">the</span> <span class="k">text</span> <span class="n">down</span> <span class="n">the</span> <span class="k">page</span>
+    <span class="k">font-size</span><span class="o">:</span> <span class="m">40px</span><span class="p">;</span>
+    <span class="k">font-weight</span><span class="o">:</span> <span class="k">bold</span><span class="p">;</span>
+    <span class="k">letter-spacing</span><span class="o">:</span> <span class="m">-2px</span><span class="p">;</span>
+    <span class="k">color</span><span class="o">:</span> <span class="o">@</span><span class="n">navbarBrandColor</span><span class="p">;</span>
+    <span class="o">&amp;:</span><span class="n">hover</span> <span class="err">{</span>
+       <span class="k">color</span><span class="o">:</span> <span class="n">darken</span><span class="p">(</span><span class="o">@</span><span class="n">navbarBrandColor</span><span class="o">,</span> <span class="m">20</span><span class="o">%</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="err">}</span>
+
+<span class="o">//</span> <span class="nt">Allow</span> <span class="nt">us</span> <span class="nt">to</span> <span class="nt">put</span> <span class="nt">symbols</span> <span class="nt">and</span> <span class="nt">text</span> <span class="nt">within</span> <span class="nt">the</span> <span class="nt">input</span> <span class="nt">field</span> <span class="nt">for</span> <span class="nt">a</span> <span class="nt">cleaner</span> <span class="nt">look</span>
+<span class="nc">.input-append</span><span class="o">,</span>
+<span class="nc">.input-prepend</span> <span class="p">{</span>
+    <span class="k">margin-bottom</span><span class="o">:</span> <span class="m">5px</span><span class="p">;</span>
+    <span class="k">font-size</span><span class="o">:</span> <span class="m">0</span><span class="p">;</span> <span class="o">//</span> <span class="nb">white</span> <span class="n">space</span> <span class="k">collapse</span> <span class="n">hack</span>
+    <span class="k">white-space</span><span class="o">:</span> <span class="k">nowrap</span><span class="p">;</span> <span class="o">//</span> <span class="n">Prevent</span> <span class="n">span</span> <span class="n">and</span> <span class="n">input</span> <span class="n">from</span> <span class="n">separating</span>
+
+    <span class="o">//</span> <span class="n">Reset</span> <span class="n">the</span> <span class="nb">white</span> <span class="n">space</span> <span class="k">collapse</span> <span class="n">hack</span>
+    <span class="n">input</span><span class="o">,</span>
+    <span class="n">select</span><span class="o">,</span>
+    <span class="o">.</span><span class="n">uneditable</span><span class="o">-</span><span class="n">input</span><span class="o">,</span>
+    <span class="o">.</span><span class="n">dropdown</span><span class="o">-</span><span class="n">menu</span> <span class="err">{</span>
+        <span class="k">font-size</span><span class="o">:</span> <span class="o">@</span><span class="n">baseFontSize</span><span class="p">;</span>
+     <span class="p">}</span>
+
+  <span class="nt">input</span><span class="o">,</span>
+  <span class="nt">select</span><span class="o">,</span>
+  <span class="nc">.active</span> <span class="p">{</span>
+      <span class="k">border-color</span><span class="o">:</span> <span class="m">#ccc</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="err">}</span>
+</pre></div>
+
+
+<p>4. Finally, to ensure that all works, I can update my <code>base.html</code>
+parent template and put a reference to my new less file. I should be
+able to update less values and the page should be dynamically updated.
+But first, I need to install the less js file which can be found
+<a href="http://lesscss.org/">here</a>.</p>
+<div class="highlight"><pre>lex@server:~/&gt; <span class="nb">cd </span>project/templates/static/js/
+lex@server:~/project/templates/static/js/&gt; wget http://cloud.github.com/downloads/cloudhead/less.js/less-1.3.1.min.js
+</pre></div>
+
+
+<p>Now client side I can compile the less file for testing by adding the
+following lines of html.</p>
+<h5>project/templates/base.html</h5>
+<div class="highlight"><pre><span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">&quot;stylesheet/less&quot;</span> <span class="na">type=</span><span class="s">&quot;text/css&quot;</span> <span class="na">media=</span><span class="s">&quot;all&quot;</span> <span class="na">href=</span><span class="s">&quot;{{STATIC_URL}}less/theme.less&quot;</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">&quot;{{STATIC_URL}}js/less-1.3.1.min.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+</pre></div>
+
+
+<p>And that works! So that's requirement 1 complete. On to the second.</p>
+<h3>Requirement 2: Easily pull updates from the main Bootstrap repo without overwriting any of my custom variables</h3>
+<p>The simplest way to handle any maintenance task in Python projects, is
+usually to add a function to a project's <a href="http://fabfile.org">Fabric</a> script. Here, I
+added a function called <code>update_bootstrap()</code> which takes an option <a href="http://git-scm.com/book/en/Git-Basics-Tagging">Git
+tag</a> argument, and pulls down the latest Bootstrap updates, checking
+out to the tagged version, if specified, then copying the <strong>less</strong>
+directory into my project as specified in Requirement 1.</p>
+<p>If you don't have a <code>fabfile.py</code> or you are new to Fabric, you're
+welcome to skip this step. However, if that's the case, then now is a
+good time to get your learn on. Fabric is amazing.</p>
+<h5>project/fabfile</h5>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">fabric.api</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">cd</span>
+<span class="kn">from</span> <span class="nn">fabric.contrib</span> <span class="kn">import</span> <span class="n">files</span>
+
+
+<span class="k">def</span> <span class="nf">local</span><span class="p">():</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">hosts</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;localhost&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">update_bootstrap</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update Bootstrap files to tag version. If a tag isn&#39;t specified just</span>
+<span class="sd">    get latest version.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">repo</span> <span class="o">=</span> <span class="s">&#39;https://github.com/twitter/bootstrap&#39;</span>
+    <span class="n">local_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span>
+                             <span class="s">&#39;templates/static/less/bootstrap&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">settings</span><span class="p">(</span><span class="n">warn_only</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="c"># Create the source directory if it doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s">&#39;~/src/&#39;</span><span class="p">):</span>
+            <span class="n">run</span><span class="p">(</span><span class="s">&#39;mkdir ~/src&#39;</span><span class="p">)</span>
+
+        <span class="c"># Clone the Bootstrap project if we don&#39;t have a local copy of the repo</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">files</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s">&#39;~/src/bootstrap&#39;</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="s">&#39;cd ~/src&#39;</span><span class="p">):</span>
+                <span class="n">run</span><span class="p">(</span><span class="s">&#39;git clone {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">repo</span><span class="p">))</span>
+
+        <span class="c"># Pull down updates</span>
+        <span class="k">with</span> <span class="n">cd</span><span class="p">(</span><span class="s">&#39;~/src/bootstrap&#39;</span><span class="p">):</span>
+            <span class="n">run</span><span class="p">(</span><span class="s">&#39;git pull origin master&#39;</span><span class="p">)</span>
+
+            <span class="c"># Checkout to tag if specified</span>
+            <span class="k">if</span> <span class="n">tag</span><span class="p">:</span>
+                <span class="n">run</span><span class="p">(</span><span class="s">&#39;git checkout {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tag</span><span class="p">))</span>
+
+            <span class="c"># Remove the project&#39;s Bootstrap files</span>
+            <span class="n">run</span><span class="p">(</span><span class="s">&#39;rm -vR {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">local_path</span><span class="p">))</span>
+
+            <span class="c"># Copy the updated files into the project</span>
+            <span class="n">run</span><span class="p">(</span><span class="s">&#39;cp -vfR less {0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">local_path</span><span class="p">))</span>
+</pre></div>
+
+
+<p>Then to run it...</p>
+<div class="highlight"><pre>lex@server:~/&gt; fab <span class="nb">local </span>update_bootstrap
+</pre></div>
+
+
+<h3>Requirement 3: Less files are compiled server-side in production but client-side during development</h3>
+<p>Nothing kills the fun of messing around with a page's design more than
+having to compile CSS after every fiddle. There's a couple of choices
+here. I could either run a script like <a href="https://gist.github.com/1242040">this</a> that watches for updates
+to less files and automatically compiles them, but it's a bit of a
+hassle. Instead, I went with the idea proposed by <a href="http://www.caktusgroup.com/blog/2012/03/05/using-less-django/">Julia Elman</a>, using
+the Django Compressor precompiler.</p>
+<p><a href="https://github.com/jezdez/django_compressor">Django Compressor</a> is a Django app that allows you to compress linked
+and inline JavaScript or CSS into a single cached file. Additionally,
+and most importantly in this context, it allows a person to specify
+precompilers of their choice. In this example, I'm going to use the Less
+compiler, <code>lessc</code>...</p>
+<p>1. Firstly, I ensured I have the Less compiler installed, which should
+be done via <strong>npm</strong>. I included the step to install <strong>npm</strong> for
+completeness.</p>
+<div class="highlight"><pre>lex@server:~/&gt; sudo apt-get install npm
+lex@server:~/&gt; sudo npm install -g less
+</pre></div>
+
+
+<p>2. Next, I installed django-compressor via Pip.</p>
+<div class="highlight"><pre>lex@server:~/&gt; sudo pip install django-compressor
+</pre></div>
+
+
+<p>3. Then, I added django-compressor to my <code>INSTALLED_APPS</code> tuple in the
+<code>settings.py</code> file.</p>
+<div class="highlight"><pre><span class="c">#...</span>
+<span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="c">#...</span>
+    <span class="s">&#39;compressor&#39;</span><span class="p">,</span>
+    <span class="c">#...</span>
+</pre></div>
+
+
+<p>4. After, I specified Less as a precompiler by adding a
+<code>COMPRESS_PRECOMPILERS</code> tuple in the same file.</p>
+<div class="highlight"><pre><span class="c">#...</span>
+<span class="n">COMPRESS_PRECOMPILERS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s">&#39;text/less&#39;</span><span class="p">,</span> <span class="s">&#39;lessc {infile} {outfile}&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<p>5. Since I am using Django's staticfiles contrib app, I have to add
+Django Compressor’s file finder to the <code>STATICFILES_FINDERS</code> tuple.</p>
+<div class="highlight"><pre><span class="n">STATICFILES_FINDERS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="c">#...</span>
+    <span class="s">&#39;compressor.finders.CompressorFinder&#39;</span><span class="p">,</span>
+    <span class="c">#...</span>
+<span class="p">)</span>
+</pre></div>
+
+
+<p>6. Now, in my parent template, I configured it such that, if DEBUG was
+enabled (which definitely should only be enabled in dev), then I would
+compile the CSS client-side, however, in production we would use
+<code>django-compressor</code>. Like so:</p>
+<div class="highlight"><pre>{% load compress %}
+<span class="cp">&lt;!DOCTYPE html&gt;</span>
+<span class="nt">&lt;html</span> <span class="na">lang=</span><span class="s">&quot;en&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="c">&lt;!-- ... --&gt;</span>
+            {% if debug %}
+            <span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">&quot;stylesheet/less&quot;</span> <span class="na">type=</span><span class="s">&quot;text/css&quot;</span> <span class="na">media=</span><span class="s">&quot;all&quot;</span> <span class="na">href=</span><span class="s">&quot;{{ STATIC_URL }}less/theme.less&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;script </span><span class="na">src=</span><span class="s">&quot;{{ STATIC_URL }}js/less-1.3.1.min.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+            {% else %}
+            {% compress css %}
+            <span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span> <span class="na">type=</span><span class="s">&quot;text/less&quot;</span> <span class="na">media=</span><span class="s">&quot;all&quot;</span> <span class="na">href=</span><span class="s">&quot;{{ STATIC_URL }}less/theme.less&quot;</span> <span class="nt">/&gt;</span>
+            {% endcompress %}
+            {% endif %}
+</pre></div>
+
+
+<p>And now, we should be good to go.</p>
+        </div>
+    </article>
+
+<div class="twitter-link">
+    <a href="https://twitter.com/lexandstuff">&#x2764;</a>
+</div>
+
+</div>
+<div class="comments">
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+    var disqus_shortname = 'lextoumbouroucom'; // Required - Replace example with your forum shortname
+
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a></div>
+        <hr>
+      </div>
+
+    </div>
+    <script src="//yandex.st/highlightjs/7.3/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>
